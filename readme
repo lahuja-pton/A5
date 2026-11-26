@@ -3,12 +3,12 @@ Assignment 5 readme File
 ------------------------------------------------------------------------
 Student 1: What is your name?
 
-
+Lakshit Ahuja
 
 ------------------------------------------------------------------------
 Student 2: What is your name?
 
-
+N/A
 
 ------------------------------------------------------------------------
 Student 1: What authorized sources of information did you use to
@@ -106,7 +106,25 @@ particular, what bugs are in your submission?
 ------------------------------------------------------------------------
 What is your mywc program test plan?
 
+Part 1b: Test files
 
+* Boundary tests:
+mywc01.txt: This file is empty. It tests the case where the loop body executes zero times and the program must print 0 0 0.
+mywc02.txt: This file contains a single non-whitespace character and no newline, and so causes the computer to execute lines 30, 32, 34, 44, 45, 48, 52, 53, 55, 56 of the given mywc.c. It is the only test that reaches line 53, because the file ends while iInWord is still true.
+mywc03.txt: This file contains only a newline. It tests that a line is counted without a word.
+mywc04.txt: This file contains only a space. It tests whitespace outside a word, and that the space is counted as a character but not as a word.
+mywc05.txt: This file contains one character followed by a newline. It tests a word terminated by a newline, with the final iInWord check false.
+mywc06.txt: This file contains "ab cd" with no trailing newline. It tests the last word being counted only by the check after the loop.
+mywc10.txt: This file has leading, repeated, and trailing spaces and tabs around three words. It tests that runs of whitespace do not create extra words.
+mywc11.txt: This file contains every printable non-space character, 0x21 through 0x7E, as one word. It tests the lowest and highest non-whitespace codes at the boundary of isspace().
+
+* Statement tests:
+mywc30.txt: This file contains two lines with three words, with each word separated by a space or newline and a final newline, and so causes the computer to execute lines 30, 32, 34, 36, 38, 39, 44, 45, 48, 49, 52, 55, 56 of the given mywc.c.
+Together these files execute every executable line of mywc.c (30, 32, 34, 36, 38, 39, 44, 45, 48, 49, 52, 53, 55, 56).
+
+* Stress tests:
+mywc40.txt: This file has 1000 lines of 49 characters each plus a newline, for 50000 characters. It stress tests the line and character counters at the largest permitted size.
+mywc41.txt: This file has 1000 lines of 17 words each, for 17000 words and 50000 characters. It stress tests the word counter and repeated in-word/out-of-word transitions.
 
 ------------------------------------------------------------------------
 What are the CPU times consumed by the programs from Parts 2a, 2b, 2d,
