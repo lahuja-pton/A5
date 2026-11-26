@@ -56,7 +56,7 @@ BigInt_larger:
         str     x0, [sp, LLARGER]
 
         // goto endifBigIntLarger1
-        b endifBigIntLarger1
+        b       endifBigIntLarger1
 
 elseBigIntLarger1:
         // lLarger = lLength2;
@@ -208,7 +208,7 @@ endifBigIntAdd3:
         str     x0, [sp, LINDEX]
 
         // goto loopBigIntAdd1;
-        b loopBigIntAdd1
+        b       loopBigIntAdd1
 
 endLoopBigIntAdd1:
         // if (ulCarry != 1) goto endifBigIntAdd4;
