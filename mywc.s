@@ -110,7 +110,10 @@ endIfSpace:
         adr     x0, lLineCount
         ldr     x1, [x0]
         add     x1, x1, 1
-        str     x1, [x0] 
+        str     x1, [x0]
+
+        // goto readLoop;
+        b       readLoop
 
 endReadLoop:
         // if (!iInWord) goto endIfWord
