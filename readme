@@ -130,9 +130,9 @@ mywc41.txt: This file has 1000 lines of 17 words each, for 17000 words and 50000
 What are the CPU times consumed by the programs from Parts 2a, 2b, 2d,
 2e, and 2f to compute fib(500000) on armlab? Fill in the blanks.
 
-Part 2a:  _____ seconds
+Part 2a:  13.210372 seconds
 
-Part 2b:  _____ seconds
+Part 2b:  5.189975 seconds
 
 Part 2d:  _____ seconds
 
