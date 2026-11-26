@@ -1,6 +1,1 @@
-
-
-
-ab
-
-
+ 	 lead   gaps		trail 	
