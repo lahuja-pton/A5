@@ -28,8 +28,61 @@
         .equ    oldX19, 8
         .equ    oldX20, 16
         .equ    oldX21, 24
+        .equ    oldX22, 32
+        .equ    oldX23, 40
         .equ    oldX24, 48
         .equ    oldX25, 56
+
+        //-------------------------------------------------------------
+        // Return the larger of lLength1 and lLength2.
+        // static long BigInt_larger(long lLength1, long lLength2)
+        //-------------------------------------------------------------
+
+        // multiple of 16
+        .equ    BIG_INT_LARGER_STACK_BYTECOUNT, 32
+
+        // Registers for parameters:
+        LLENGTH1    .req x19
+        LLENGTH2    .req x20
+
+        // Registers for local variables:
+        LLARGER     .req x21
+
+BigInt_larger:
+        // Prolog
+        sub     sp, sp, BIG_INT_LARGER_STACK_BYTECOUNT
+        str     x30, [sp]
+        str     x19, [sp, oldX19]
+        str     x20, [sp, oldX20]
+        str     x21, [sp, oldX21]
+        mov     LLENGTH1, x0
+        mov     LLENGTH2, x1
+
+        // if (lLength1 <= lLength2) goto elseBigIntLarger1
+        cmp     LLENGTH1, LLENGTH2
+        ble     elseBigIntLarger1
+
+        // lLarger = lLength1;
+        mov     LLARGER, LLENGTH1
+
+        // goto endifBigIntLarger1
+        b       endifBigIntLarger1
+
+elseBigIntLarger1:
+        // lLarger = lLength2;
+        mov     LLARGER, LLENGTH2
+
+endifBigIntLarger1:
+        // Epilog and return lLarger
+        mov     x0, LLARGER
+        ldr     x30, [sp]
+        ldr     x19, [sp, oldX19]
+        ldr     x20, [sp, oldX20]
+        ldr     x21, [sp, oldX21]
+        add     sp, sp, BIG_INT_LARGER_STACK_BYTECOUNT
+        ret
+
+        .size   BigInt_larger, (. - BigInt_larger)
 
         //--------------------------------------------------------------
         // Assign the sum of oAddend1 and oAddend2 to oSum.  oSum should 
@@ -47,6 +100,8 @@
         OSUM        .req x21
 
         // Registers for local variables:
+        ULCARRY     .req x22
+        ULSUM       .req x23
         LINDEX      .req x24
         LSUMLENGTH  .req x25
 
@@ -59,29 +114,21 @@ BigInt_add:
         str     x19, [sp, oldX19]
         str     x20, [sp, oldX20]
         str     x21, [sp, oldX21]
+        str     x22, [sp, oldX22]
+        str     x23, [sp, oldX23]
         str     x24, [sp, oldX24]
         str     x25, [sp, oldX25]
         mov     OADDEND1, x0
         mov     OADDEND2, x1
         mov     OSUM, x2
 
-        // if (oAddend1->lLength > oAddend2->lLength) goto elseL1Bigger;
+        // lSumLength = BigInt_larger(oAddend1->lLength, oAddend2->lLength);
         ldr     x0, [OADDEND1, LLENGTH]
         ldr     x1, [OADDEND2, LLENGTH]
-        cmp     x0, x1
-        bgt     elseL1Bigger
-
-        // lSumLength = oAddend2->lLength
-        mov     LSUMLENGTH, x1
-
-        // goto endifL1Bigger
-        b       endifL1Bigger
-
-elseL1Bigger:
-        // lSumLength = oAddend1->lLength
+        bl      BigInt_larger
         mov     LSUMLENGTH, x0
 
-endifL1Bigger:
+
         // if (oSum->lLength <= lSumLength) goto endifBigIntAdd1
         ldr     x0, [OSUM, LLENGTH]
         cmp     x0, LSUMLENGTH
@@ -95,38 +142,63 @@ endifL1Bigger:
         bl      memset
 
 endifBigIntAdd1:
+        // ulCarry = 0;
+        mov     ULCARRY, 0
+
         // lIndex = 0;
         mov     LINDEX, 0
 
-        // set carry flag to 0
-        adds    xzr, xzr, xzr
-
-        // if (lSumLength == 0) goto endLoopBigIntAdd1;
-        cbz     LSUMLENGTH, endLoopBigIntAdd1
-
-        // remaining digit counter
-        mov     x4, LSUMLENGTH
-
 loopBigIntAdd1:
-        // oSum->aulDigits[lIndex] = oAddend1->aulDigits[lIndex] + oAddend2->aulDigits[lIndex];
+        // if (lIndex >= lSumLength) goto endLoopBigIntAdd1;
+        cmp     LINDEX, LSUMLENGTH
+        bge     endLoopBigIntAdd1
+
+        // ulSum = ulCarry;
+        mov     ULSUM, ULCARRY
+
+        // ulCarry = 0;
+        mov     ULCARRY, 0
+
+        // ulSum += oAddend1->aulDigits[lIndex];
         add     x0, OADDEND1, AULDIGITS
         ldr     x0, [x0, LINDEX, lsl 3]
-        add     x1, OADDEND2, AULDIGITS
-        ldr     x1, [x1, LINDEX, lsl 3]
-        adcs    x2, x0, x1
-        add     x3, OSUM, AULDIGITS
-        str     x2, [x3, LINDEX, lsl 3]
+        add     ULSUM, ULSUM, x0
+
+        // if (ulSum >= oAddend1->aulDigits[lIndex]) goto endifBigIntAdd2;
+        cmp     ULSUM, x0
+        bhs     endifBigIntAdd2
+
+        // ulCarry = 1;
+        mov     ULCARRY, 1
+
+endifBigIntAdd2:
+        // ulSum += oAddend2->aulDigits[lIndex];
+        add     x0, OADDEND2, AULDIGITS
+        ldr     x0, [x0, LINDEX, lsl 3]
+        add     ULSUM, ULSUM, x0
+
+        // if (ulSum >= oAddend2->aulDigits[lIndex]) goto endifBigIntAdd3;
+        cmp     ULSUM, x0
+        bhs     endifBigIntAdd3
+
+        // ulCarry = 1;
+        mov     ULCARRY, 1
+
+endifBigIntAdd3:
+        // oSum->aulDigits[lIndex] = ulSum;
+        add     x0, OSUM, AULDIGITS
+        str     ULSUM, [x0, LINDEX, lsl 3]
 
         // lIndex++;
         add     LINDEX, LINDEX, 1
-        sub     x4, x4, 1
 
-        // if (loop counter != 0) goto loopBigIntAdd1
-        cbnz    x4, loopBigIntAdd1
+        // goto loopBigIntAdd1;
+        b       loopBigIntAdd1
 
 endLoopBigIntAdd1:
-        // if (carry == 0) goto endifBigIntAdd4;
-        bcc     endifBigIntAdd4
+        // if (ulCarry != 1) goto endifBigIntAdd4;
+        cmp     ULCARRY, 1
+        bne     endifBigIntAdd4
 
         // if (lSumLength != MAX_DIGITS) goto endifBigIntAdd5;
         cmp     LSUMLENGTH, MAX_DIGITS
@@ -157,6 +229,8 @@ Epilog:
         ldr     x19, [sp, oldX19]
         ldr     x20, [sp, oldX20]
         ldr     x21, [sp, oldX21]
+        ldr     x22, [sp, oldX22]
+        ldr     x23, [sp, oldX23]
         ldr     x24, [sp, oldX24]
         ldr     x25, [sp, oldX25]
         add     sp, sp, BIG_INT_ADD_STACK_BYTECOUNT
